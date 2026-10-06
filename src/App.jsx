@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Header from './components/Header';
 import ApartmentGrid from './components/ApartmentGrid';
 import ApartmentSummary from './components/ApartmentSummary';
@@ -41,9 +41,28 @@ export default function App() {
 
   // ---------- Türetilmiş değerler ----------
   const saleK = salePriceK(apt);
+  const minK = minDownK(saleK);
+  // Güvenlik Kalkanı: downK hiçbir durumda o anki dairenin asgari %40'ının altına inemez!
+  const effectiveDownK = Math.max(downK, minK);
+
+  // DAİRE DEĞİŞİKLİĞİ TAKİBİ: Daire değiştiğinde veya peşinat %40'ın altında kaldığında
+  // peşinatı otomatik olarak seçilen yeni dairenin asgari %40'ına eşitle
+  const prevAptIdRef = useRef(aptId(apt));
+  useEffect(() => {
+    const currentId = aptId(apt);
+    if (prevAptIdRef.current !== currentId) {
+      prevAptIdRef.current = currentId;
+      setDownK(minK);
+      setEqualTargetK(null);
+      setFlexMap({});
+    } else if (downK < minK) {
+      setDownK(minK);
+    }
+  }, [apt, saleK, downK, minK]);
+
   const N = monthsUntilMaturity(start);
   const months = useMemo(() => scheduleMonths(start, N), [start, N]);
-  const kalanK = Math.max(0, saleK - downK);
+  const kalanK = Math.max(0, saleK - effectiveDownK);
   const effectiveEqualK = Math.min(equalTargetK ?? kalanK, kalanK);
 
   const installmentsK = useMemo(() => {
@@ -53,8 +72,8 @@ export default function App() {
   }, [mode, effectiveEqualK, N, flexMap, months, kalanK]);
 
   const plan = useMemo(
-    () => computeInstallmentPlan({ saleK, downK, installmentsK, start }),
-    [saleK, downK, installmentsK, start]
+    () => computeInstallmentPlan({ saleK, downK: effectiveDownK, installmentsK, start }),
+    [saleK, effectiveDownK, installmentsK, start]
   );
   const cashPlan = useMemo(() => computeCashPlan(saleK), [saleK]);
 
@@ -179,7 +198,7 @@ export default function App() {
               onStartChange={setStart}
               startOptions={startOptions}
               saleK={saleK}
-              downK={downK}
+              downK={effectiveDownK}
               onDownChange={handleDownChange}
               onDownPctChange={handleDownPct}
               mode={mode}
