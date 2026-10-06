@@ -1,7 +1,7 @@
 import MoneyInput from './MoneyInput';
 import { formatTL, formatYM } from '../lib/format';
 
-export default function InstallmentTable({ plan, editable, onChange }) {
+export default function InstallmentTable({ plan, editable, onChange, minInstallmentK = 0 }) {
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200">
       <div className="max-h-[520px] overflow-auto">
@@ -32,27 +32,30 @@ export default function InstallmentTable({ plan, editable, onChange }) {
               <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-800">{formatTL(plan.downK)}</td>
               <td className="px-3 py-2 text-right tabular-nums text-slate-500">{formatTL(plan.kalanK)}</td>
             </tr>
-            {plan.rows.map((r, i) => (
-              <tr key={`${r.ym.y}-${r.ym.m}`} className="hover:bg-slate-50">
-                <td className="px-3 py-1.5 text-slate-400">{r.index}</td>
-                <td className="px-3 py-1.5 font-medium text-slate-700">{formatYM(r.ym)}</td>
-                <td className="px-3 py-1.5 text-slate-500">{r.index}. Taksit</td>
-                <td className="w-56 px-3 py-1.5 text-right">
-                  {editable ? (
-                    <MoneyInput
-                      valueK={r.amountK}
-                      onChange={(k) => onChange(i, k)}
-                      showZeroAsEmpty
-                      className="border-slate-200 py-1.5 text-sm"
-                      aria-label={`${formatYM(r.ym)} taksit tutarı`}
-                    />
-                  ) : (
-                    <span className="font-semibold tabular-nums text-slate-800">{formatTL(r.amountK)}</span>
-                  )}
-                </td>
-                <td className="px-3 py-1.5 text-right tabular-nums text-slate-500">{formatTL(r.remainingK)}</td>
-              </tr>
-            ))}
+            {plan.rows.map((r, i) => {
+              const isBelowMin = editable && r.amountK > 0 && r.amountK < minInstallmentK;
+              return (
+                <tr key={`${r.ym.y}-${r.ym.m}`} className="hover:bg-slate-50">
+                  <td className="px-3 py-1.5 text-slate-400">{r.index}</td>
+                  <td className="px-3 py-1.5 font-medium text-slate-700">{formatYM(r.ym)}</td>
+                  <td className="px-3 py-1.5 text-slate-500">{r.index}. Taksit</td>
+                  <td className="w-56 px-3 py-1.5 text-right">
+                    {editable ? (
+                      <MoneyInput
+                        valueK={r.amountK}
+                        onChange={(k) => onChange(i, k)}
+                        showZeroAsEmpty
+                        className={`border-slate-200 py-1.5 text-sm ${isBelowMin ? 'border-rose-400 ring-1 ring-rose-400' : ''}`}
+                        aria-label={`${formatYM(r.ym)} taksit tutarı`}
+                      />
+                    ) : (
+                      <span className="font-semibold tabular-nums text-slate-800">{formatTL(r.amountK)}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-slate-500">{formatTL(r.remainingK)}</td>
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot className="text-sm">
             <tr className="border-t-2 border-slate-300 bg-slate-50">

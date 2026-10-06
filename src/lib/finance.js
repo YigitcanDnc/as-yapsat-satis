@@ -44,6 +44,10 @@ export const downFromPct = (saleK, pct) =>
 /** Peşinatı [asgari, satış fiyatı] aralığına sıkıştırır */
 export const clampDown = (saleK, downK) => Math.min(saleK, Math.max(minDownK(saleK), downK || 0));
 
+/** Daire tipine göre asgari taksit tutarı (2+1 için 80.000 TL, 3+1 için 120.000 TL) */
+export const minInstallmentForTipK = (tip) => FINANCE.minInstallmentK[tip] || 80_000_00;
+
+
 // ---------- Taksit dağıtımı ----------
 /**
  * Tutarı N aya eşit böler. Aylık taksit tam TL'ye yuvarlanır,

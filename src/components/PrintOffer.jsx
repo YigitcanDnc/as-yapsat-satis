@@ -173,12 +173,24 @@ export default function PrintOffer({ apt, saleK, paymentType, plan, cashPlan, cu
 
           {/* GENEL ŞARTLAR */}
           <div className="mt-2.5 rounded border border-slate-200 bg-slate-50/80 p-2 text-[8px] text-slate-600">
-            <p className="font-bold text-slate-800">Teklif Koşulları:</p>
-            <div className="mt-0.5 grid grid-cols-2 gap-x-4">
-              <p>1. Teklif {formatDate(validUntil)} tarihine kadar geçerli olup satış vaadi sözleşmesinin resmi ekidir.</p>
-              <p>2. Ödenen taksitler ana paradan mahsup edilir; taksit tutarlarına vade farkı eklenmez.</p>
-              <p>3. Teslimat bakiyesine başlangıçtan itibaren geçen ay sayısı kadar aylık %2,5 basit vade farkı uygulanır.</p>
-              <p>4. Ek 2'de yer alan izometrik kat şeması bağımsız bölümün kesin cephe ve konumunu belirler.</p>
+            <p className="font-bold text-slate-800">Teklif Koşulları ve Teslimat Hükümleri:</p>
+            <div className="mt-0.5 space-y-1">
+              <div className="grid grid-cols-2 gap-x-4">
+                <p>1. Teklif {formatDate(validUntil)} tarihine kadar geçerli olup satış vaadi sözleşmesinin resmi ekidir.</p>
+                <p>2. Ödenen taksitler ana paradan mahsup edilir; taksit tutarlarına vade farkı eklenmez.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4">
+                <p>3. Teslimat bakiyesine başlangıçtan itibaren geçen ay sayısı kadar aylık %2,5 basit vade farkı uygulanır.</p>
+                <p>4. Ek 2'de yer alan izometrik kat şeması bağımsız bölümün kesin cephe ve konumunu belirler.</p>
+              </div>
+              <div className="border-t border-slate-200 pt-1 text-[7.5px] leading-relaxed text-slate-700">
+                <p>
+                  5. <b>Erken Teslimat Durumu:</b> Projenin Mart 2028 vade tarihinden önce tamamlanması halinde; Alıcı dairesini erken teslim almak isterse kalan her ay için %2,5 faiz/vade farkı uygulanır. Alıcı dilerse belirtilen resmi vade tarihinde (Mart 2028) teslim almayı tercih ederek bu vade farkından etkilenmeyebilir.
+                </p>
+                <p className="mt-0.5">
+                  6. <b>Gecikme Durumu:</b> İnşaatın mücbir veya operasyonel nedenlerle gecikmesi durumunda, son teslimat/kapanış ödemesi bekletilir ve fiili bağımsız bölüm tapu/anahtar tesliminde tahsil edilir.
+                </p>
+              </div>
             </div>
           </div>
         </div>

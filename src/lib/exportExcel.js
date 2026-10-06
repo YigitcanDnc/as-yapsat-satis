@@ -172,12 +172,29 @@ export async function exportOfferToExcel(payload) {
   }
 
   // Dipnot İmza Alanı
-  r += 2;
+  r++;
+  ws1.mergeCells(`B${r}:C${r}`);
+  const condNote1 = ws1.getCell(`B${r}`);
+  condNote1.value = 'Not 1: Projenin erken tamamlanması durumunda Alıcı dairesini erken teslim almak isterse kalan her ay için %2,5 faiz uygulanır; dilerse Mart 2028 vade tarihinde faizsiz teslim alabilir.';
+  condNote1.font = { name: 'Calibri', size: 8, italic: true, color: { argb: `FF${TEXT_MUTED}` } };
+  condNote1.alignment = { horizontal: 'left', wrapText: true };
+  ws1.getRow(r).height = 20;
+
+  r++;
+  ws1.mergeCells(`B${r}:C${r}`);
+  const condNote2 = ws1.getCell(`B${r}`);
+  condNote2.value = 'Not 2: İnşaatın gecikmesi halinde son teslimat kapanış ödemesi bekletilip fiili bağımsız bölüm tapu/anahtar tesliminde tahsil edilir.';
+  condNote2.font = { name: 'Calibri', size: 8, italic: true, color: { argb: `FF${TEXT_MUTED}` } };
+  condNote2.alignment = { horizontal: 'left', wrapText: true };
+  ws1.getRow(r).height = 18;
+
+  r++;
   ws1.mergeCells(`B${r}:C${r}`);
   const signNote = ws1.getCell(`B${r}`);
   signNote.value = 'İşbu ödeme planı ve teklif özeti satış vaadi sözleşmesinin ayrılmaz bir parçasıdır.';
-  signNote.font = { name: 'Calibri', size: 9, italic: true, color: { argb: `FF${TEXT_MUTED}` } };
+  signNote.font = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FF1E293B' } };
   signNote.alignment = { horizontal: 'center' };
+  ws1.getRow(r).height = 20;
 
   // ========================================================
   // SAYFA 2: DETAYLI AY AY ÖDEME ÇİZELGESİ

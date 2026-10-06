@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Wallet, CalendarDays, Percent, TriangleAlert, Equal, SlidersHorizontal, Eraser, ArrowDownToLine, Info, CircleCheck,
+  Wallet, CalendarDays, Percent, TriangleAlert, Equal, SlidersHorizontal, ArrowDownToLine, Info, CircleCheck,
 } from 'lucide-react';
 import MoneyInput from './MoneyInput';
 import InstallmentTable from './InstallmentTable';
@@ -135,9 +135,6 @@ export default function PaymentPlanner(props) {
               <button onClick={onDistribute} disabled={plan.N === 0} className="btn-quick inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40">
                 <ArrowDownToLine className="size-4" /> Kalanı Aylara Eşit Dağıt
               </button>
-              <button onClick={onClear} className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100">
-                <Eraser className="size-4" /> Taksitleri Sıfırla (Tamamı Kapanış Bakiyesi Olsun)
-              </button>
             </div>
           </div>
 
@@ -178,7 +175,7 @@ export default function PaymentPlanner(props) {
             </p>
           )}
 
-          <InstallmentTable plan={plan} editable={mode === 'flex'} onChange={onFlexChange} />
+          <InstallmentTable plan={plan} editable={mode === 'flex'} onChange={onFlexChange} minInstallmentK={props.minInstallmentK} />
         </div>
       )}
     </section>

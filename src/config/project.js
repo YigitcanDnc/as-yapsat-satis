@@ -17,4 +17,10 @@ export const FINANCE = {
   minDownPct: 40, // Asgari peşinat: %40
   monthlyInterestPermille: 25, // Aylık basit faiz: %2,5 = binde 25
   maturity: { y: 2028, m: 3 }, // Vade bitişi: Mart 2028
+  // Taksit alt sınırları (kuruş cinsinden)
+  minInstallmentK: {
+    '2+1': 80_000_00,  // 80.000 TL
+    '3+1': 120_000_00, // 120.000 TL
+  },
 };
+

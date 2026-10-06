@@ -35,8 +35,16 @@ export default function ApartmentSummary({ apt, saleK }) {
         <Item icon={Layers} label="Kat" value={katLabel(apt.kat)} />
         <Item icon={Compass} label="Cephe" value={`${apt.cephe} · ${CEPHE_LABELS[apt.cephe]}`} />
         <Item icon={House} label="Tip" value={apt.tip} />
-        <Item icon={BadgePercent} label="Şerefiye Katsayısı" value={`${apt.katsayi} (%${apt.katsayi})`} />
-        <Item icon={Tag} label="Baz Fiyat" value={formatTL(bazK)} />
+        <div
+          onClick={props.onOpenAdmin}
+          className="cursor-pointer group bg-white px-4 py-3 hover:bg-amber-50/60 transition"
+          title="Yönetici: Baz Fiyatı Düzenle"
+        >
+          <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-400 group-hover:text-amber-700">
+            <Tag className="size-3.5 group-hover:text-amber-500" /> Baz Fiyat
+          </dt>
+          <dd className="mt-0.5 font-semibold tabular-nums text-slate-800 group-hover:text-amber-900">{formatTL(bazK)}</dd>
+        </div>
         <Item
           icon={Banknote}
           label="Şerefiye Farkı"
