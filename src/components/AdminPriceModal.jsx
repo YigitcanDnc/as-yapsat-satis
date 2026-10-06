@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, Save, RotateCcw, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import MoneyInput from './MoneyInput';
 import { formatTL } from '../lib/format';
@@ -6,6 +6,13 @@ import { formatTL } from '../lib/format';
 export default function AdminPriceModal({ isOpen, onClose, basePrices, onSave, onReset }) {
   const [prices, setPrices] = useState(basePrices);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && basePrices) {
+      setPrices(basePrices);
+      setSuccess(false);
+    }
+  }, [isOpen, basePrices]);
 
   if (!isOpen) return null;
 

@@ -3,7 +3,7 @@ import { CEPHE_LABELS, katLabel, aptShortCode } from '../data/apartments';
 import { cashPriceK } from '../lib/finance';
 import { formatTL } from '../lib/format';
 
-export default function ApartmentSummary({ apt, saleK }) {
+export default function ApartmentSummary({ apt, saleK, onOpenAdmin }) {
   const bazK = apt.bazFiyat * 100;
   const diffK = saleK - bazK;
 
@@ -36,7 +36,7 @@ export default function ApartmentSummary({ apt, saleK }) {
         <Item icon={Compass} label="Cephe" value={`${apt.cephe} · ${CEPHE_LABELS[apt.cephe]}`} />
         <Item icon={House} label="Tip" value={apt.tip} />
         <div
-          onClick={props.onOpenAdmin}
+          onClick={onOpenAdmin}
           className="cursor-pointer group bg-white px-4 py-3 hover:bg-amber-50/60 transition"
           title="Yönetici: Baz Fiyatı Düzenle"
         >

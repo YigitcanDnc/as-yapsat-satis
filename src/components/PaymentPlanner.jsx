@@ -12,7 +12,7 @@ export default function PaymentPlanner(props) {
   const {
     paymentType, onPaymentTypeChange, start, onStartChange, startOptions, saleK, downK, onDownChange,
     onDownPctChange, mode, onModeChange, equalTargetK, onEqualTargetChange, plan, cashPlan,
-    onFlexChange, onDistribute, onClear, notice,
+    onFlexChange, onDistribute, notice, minInstallmentK,
   } = props;
 
   const [draftDown, setDraftDown] = useState(null);
@@ -175,7 +175,7 @@ export default function PaymentPlanner(props) {
             </p>
           )}
 
-          <InstallmentTable plan={plan} editable={mode === 'flex'} onChange={onFlexChange} minInstallmentK={props.minInstallmentK} />
+          <InstallmentTable plan={plan} editable={mode === 'flex'} onChange={onFlexChange} minInstallmentK={minInstallmentK} />
         </div>
       )}
     </section>

@@ -34,7 +34,12 @@ export default function App() {
   const [basePrices, setBasePrices] = useState(() => {
     try {
       const saved = localStorage.getItem('as_yapsat_base_prices');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed['2+1'] === 'number' && typeof parsed['3+1'] === 'number') {
+          return parsed;
+        }
+      }
     } catch {}
     return DEFAULT_BASE_PRICES;
   });
