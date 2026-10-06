@@ -1,11 +1,9 @@
-import { House, Layers, Compass, BadgePercent, Banknote, Tag } from 'lucide-react';
+import { House, Layers, Compass, BadgePercent } from 'lucide-react';
 import { CEPHE_LABELS, katLabel, aptShortCode } from '../data/apartments';
 import { cashPriceK } from '../lib/finance';
 import { formatTL } from '../lib/format';
 
 export default function ApartmentSummary({ apt, saleK }) {
-  const bazK = apt.bazFiyat * 100;
-  const diffK = saleK - bazK;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -35,13 +33,7 @@ export default function ApartmentSummary({ apt, saleK }) {
         <Item icon={Layers} label="Kat" value={katLabel(apt.kat)} />
         <Item icon={Compass} label="Cephe" value={`${apt.cephe} · ${CEPHE_LABELS[apt.cephe]}`} />
         <Item icon={House} label="Tip" value={apt.tip} />
-        <Item icon={Tag} label="Baz Fiyat" value={formatTL(bazK)} />
-        <Item
-          icon={Banknote}
-          label="Şerefiye Farkı"
-          value={`${diffK >= 0 ? '+' : '−'}${formatTL(Math.abs(diffK))}`}
-          valueClass={diffK >= 0 ? 'text-emerald-600' : 'text-rose-600'}
-        />
+        <Item icon={BadgePercent} label="Şerefiye Katsayısı" value={`${apt.katsayi} (%${apt.katsayi})`} />
       </dl>
       <div className="flex items-center justify-between border-t border-slate-100 bg-emerald-50 px-5 py-3 text-sm">
         <span className="font-medium text-emerald-800">Peşin Fiyat (%15 indirimli)</span>
