@@ -29,10 +29,10 @@ export default function Header({ onOpenAdmin }) {
             <button
               onClick={onOpenAdmin}
               title="Yönetici Paneli (Baz Fiyatlar)"
-              className="group flex size-8 items-center justify-center rounded-lg bg-slate-800/80 text-slate-500 hover:bg-slate-800 hover:text-amber-400 transition shadow-sm border border-slate-700/50"
+              className="group flex size-8 items-center justify-center rounded-lg bg-slate-900 border border-slate-900 hover:border-slate-800 hover:bg-slate-800 transition cursor-pointer"
               aria-label="Yönetici Paneli"
             >
-              <Lock className="size-3.5 transition-transform group-hover:scale-110" />
+              <Lock className="size-3.5 text-slate-900 group-hover:text-amber-400 transition" />
             </button>
           )}
         </div>

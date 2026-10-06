@@ -1,4 +1,4 @@
-import { House, Layers, Compass, BadgePercent } from 'lucide-react';
+import { House, Layers, Compass } from 'lucide-react';
 import { CEPHE_LABELS, katLabel, aptShortCode } from '../data/apartments';
 import { cashPriceK } from '../lib/finance';
 import { formatTL } from '../lib/format';
@@ -29,11 +29,10 @@ export default function ApartmentSummary({ apt, saleK }) {
         </div>
       </div>
 
-      <dl className="grid grid-cols-2 gap-px bg-slate-100 text-sm">
+      <dl className="grid grid-cols-3 gap-px bg-slate-100 text-sm">
         <Item icon={Layers} label="Kat" value={katLabel(apt.kat)} />
         <Item icon={Compass} label="Cephe" value={`${apt.cephe} · ${CEPHE_LABELS[apt.cephe]}`} />
         <Item icon={House} label="Tip" value={apt.tip} />
-        <Item icon={BadgePercent} label="Şerefiye Katsayısı" value={`${apt.katsayi} (%${apt.katsayi})`} />
       </dl>
       <div className="flex items-center justify-between border-t border-slate-100 bg-emerald-50 px-5 py-3 text-sm">
         <span className="font-medium text-emerald-800">Peşin Fiyat (%15 indirimli)</span>
