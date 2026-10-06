@@ -253,11 +253,11 @@ export default function PrintOffer({ apt, saleK, paymentType, plan, cashPlan, cu
           </div>
 
           {/* MERKEZ: GERÇEK İZOMETRİK ŞEMA ÜZERİNDE DİNAMİK VURGU */}
-          <div className="mt-3 flex justify-center">
+          <div className="mt-2 flex justify-center">
             <InteractiveFloorPlan
               selectedApt={apt}
               isPrint={true}
-              maxWidth="max-w-[430px]"
+              maxWidth="max-w-[520px]"
             />
           </div>
 

@@ -223,10 +223,7 @@ export default function App() {
         isOpen={floorPlanOpen}
         onClose={() => setFloorPlanOpen(false)}
         selectedApt={apt}
-        onSelectApt={(newApt) => {
-          setApt(newApt);
-          setBlock(newApt.blok);
-        }}
+        onSelectApt={handleSelect}
       />
     </>
   );

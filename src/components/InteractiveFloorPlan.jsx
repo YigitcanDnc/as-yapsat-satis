@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import katSemasiImg from '../assets/kat-semasi.png';
 import { FLAT_COORDINATES } from '../data/flatCoordinates';
-import { findApartmentByNo, katLabel, CEPHE_LABELS } from '../data/apartments';
+import { findApartmentByNo } from '../data/apartments';
 
 /**
  * Gerçek İzometrik Çizim Üzerinden Dinamik Daire Vurgulama Bileşeni
@@ -14,7 +14,7 @@ export default function InteractiveFloorPlan({
   selectedApt,
   onSelectApt = null,
   isPrint = false,
-  maxWidth = 'max-w-[500px]',
+  maxWidth = 'max-w-[540px]',
 }) {
   const selectedNo = selectedApt?.no;
   const [hoveredNo, setHoveredNo] = useState(null);
@@ -24,11 +24,14 @@ export default function InteractiveFloorPlan({
 
   return (
     <div className={`relative mx-auto w-full ${maxWidth} select-none`}>
-      {/* 1. GERÇEK İZOMETRİK ÇİZİM GÖRSELİ */}
+      {/* 1. GERÇEK İZOMETRİK ÇİZİM GÖRSELİ (Yüksek Çözünürlüklü ve Keskin Kontrast) */}
       <img
         src={katSemasiImg}
         alt="As İnşaat Yapılent Yanı Kat Şeması"
-        className="w-full h-auto block object-contain drop-shadow-sm"
+        className="w-full h-auto block object-contain"
+        style={{
+          imageRendering: '-webkit-optimize-contrast',
+        }}
         draggable={false}
       />
 
@@ -75,8 +78,8 @@ export default function InteractiveFloorPlan({
                 // SEÇİLİ DAİRE VURGUSU
                 <polygon
                   points={coord.svgPoints}
-                  fill="rgba(245, 158, 11, 0.35)"
-                  stroke="#d97706"
+                  fill="rgba(245, 158, 11, 0.40)"
+                  stroke="#b45309"
                   strokeWidth="3.5"
                   strokeLinejoin="round"
                   className="transition-all duration-300"
@@ -112,16 +115,16 @@ export default function InteractiveFloorPlan({
             <circle
               cx={selectedCoord.cx}
               cy={selectedCoord.cy}
-              r="22"
+              r="24"
               fill="rgba(245, 158, 11, 0.2)"
               stroke="#f59e0b"
-              strokeWidth="2"
+              strokeWidth="2.5"
             >
               {!isPrint && (
                 <>
                   <animate
                     attributeName="r"
-                    values="14;28;14"
+                    values="14;30;14"
                     dur="2s"
                     repeatCount="indefinite"
                   />
@@ -139,7 +142,7 @@ export default function InteractiveFloorPlan({
             <circle
               cx={selectedCoord.cx}
               cy={selectedCoord.cy}
-              r="4.5"
+              r="5"
               fill="#d97706"
               stroke="#ffffff"
               strokeWidth="2"
@@ -152,7 +155,7 @@ export default function InteractiveFloorPlan({
             >
               {/* Pointer İğnesi (Merkeze işaret eder) */}
               <polygon
-                points="0,-2 -5,-12 5,-12"
+                points="0,-2 -6,-14 6,-14"
                 fill="#0f172a"
                 stroke="#f59e0b"
                 strokeWidth="1.5"
@@ -160,23 +163,23 @@ export default function InteractiveFloorPlan({
 
               {/* Rozet Arka Plan Kutusu */}
               <rect
-                x="-46"
-                y="-34"
-                width="92"
-                height="22"
+                x="-48"
+                y="-38"
+                width="96"
+                height="24"
                 rx="6"
                 fill="#0f172a"
                 stroke="#f59e0b"
-                strokeWidth="2"
+                strokeWidth="2.5"
               />
 
               {/* Rozet Metni */}
               <text
                 x="0"
-                y="-19"
+                y="-22"
                 textAnchor="middle"
                 fill="#fbbf24"
-                fontSize="10"
+                fontSize="11"
                 fontWeight="900"
                 fontFamily="system-ui, -apple-system, sans-serif"
                 letterSpacing="0.5"

@@ -69,7 +69,7 @@ export default function FloorPlanModal({ isOpen, onClose, selectedApt, onSelectA
               <InteractiveFloorPlan
                 selectedApt={selectedApt}
                 onSelectApt={onSelectApt}
-                maxWidth="max-w-[580px]"
+                maxWidth="max-w-[660px]"
               />
             </div>
           </div>
