@@ -238,7 +238,7 @@ export default function App() {
               onSelect={handleSelect}
               onOpenFloorPlan={() => setFloorPlanOpen(true)}
             />
-            <ApartmentSummary apt={apt} saleK={saleK} onOpenAdmin={() => setAdminOpen(true)} />
+            <ApartmentSummary apt={apt} saleK={saleK} />
           </div>
 
           <div className="lg:row-span-2 2xl:row-span-1">

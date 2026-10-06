@@ -1,9 +1,29 @@
+import { useState, useRef } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { PROJECT } from '../config/project';
 import { formatDate } from '../lib/format';
 import logoUrl from '../assets/logo.png';
 
 export default function Header({ onOpenAdmin }) {
+  const [clickCount, setClickCount] = useState(0);
+  const clickTimer = useRef(null);
+
+  const handleLogoClick = () => {
+    if (!onOpenAdmin) return;
+    clearTimeout(clickTimer.current);
+    const next = clickCount + 1;
+    if (next >= 7) {
+      setClickCount(0);
+      onOpenAdmin();
+    } else {
+      setClickCount(next);
+      // 3 saniye içinde 7 tıklama tamamlanmazsa sıfırla
+      clickTimer.current = setTimeout(() => {
+        setClickCount(0);
+      }, 3000);
+    }
+  };
+
   return (
     <header className="bg-slate-900 text-white print:hidden">
       <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4 px-6 py-3.5">
@@ -11,7 +31,9 @@ export default function Header({ onOpenAdmin }) {
           <img
             src={logoUrl}
             alt="As İnşaat Logo"
-            className="h-12 w-12 rounded-xl bg-white p-1 object-contain shadow-md"
+            onClick={handleLogoClick}
+            className="h-12 w-12 rounded-xl bg-white p-1 object-contain shadow-md cursor-pointer select-none active:scale-95 transition-transform"
+            title="As İnşaat"
           />
           <div>
             <h1 className="text-lg font-bold tracking-wide">{PROJECT.name}</h1>
@@ -25,18 +47,6 @@ export default function Header({ onOpenAdmin }) {
             <CalendarDays className="size-4 text-amber-400" />
             {formatDate()}
           </div>
-          {onOpenAdmin && (
-            <button
-              onClick={onOpenAdmin}
-              title="Yönetici Paneli (Baz Fiyatlar)"
-              className="rounded-lg p-2 text-slate-700 hover:text-slate-400 hover:bg-slate-800/60 transition"
-              aria-label="Yönetici Paneli"
-            >
-              <svg className="size-3.5 opacity-40 hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </button>
-          )}
         </div>
       </div>
     </header>
