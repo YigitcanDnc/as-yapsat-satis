@@ -11,7 +11,6 @@ import {
   AlertCircle,
   RotateCcw,
   Save,
-  ShieldAlert,
   Edit3,
   Trash2,
   TrendingUp,
@@ -398,13 +397,6 @@ export default function AdminControlModal({
           {/* TAB 2: BAZ FİYATLAR */}
           {activeTab === 'prices' && (
             <div className="max-w-xl mx-auto space-y-4">
-              <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-900 flex items-start gap-2.5">
-                <ShieldAlert className="size-5 shrink-0 text-amber-600 mt-0.5" />
-                <span>
-                  <b>Gizli Yönetici Parametresi:</b> Bu panel müşterilere veya dış dünyaya görünmez. Değiştirilen baz fiyatlar sistemdeki tüm 40 dairenin şerefiye çarpanlarını, sol paneldeki liste fiyatlarını ve ödeme hesaplamalarını anında günceller.
-                </span>
-              </div>
-
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
                 <div>
                   <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-600">
@@ -482,7 +474,7 @@ export default function AdminControlModal({
                       maxLength={8}
                       value={oldPin}
                       onChange={(e) => setOldPin(e.target.value)}
-                      placeholder="Mevcut PIN (varsayılan: 1923)"
+                      placeholder="Mevcut PIN Kodunu Giriniz"
                       className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                     />
                   </div>

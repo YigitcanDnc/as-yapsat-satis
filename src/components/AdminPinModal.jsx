@@ -74,9 +74,6 @@ export default function AdminPinModal({ isOpen, onClose, onSuccess, currentPin =
                 <AlertCircle className="size-3.5" /> Hatalı PIN kodu girdiniz!
               </p>
             )}
-            <p className="mt-1.5 text-center text-[10px] text-slate-400">
-              Varsayılan PIN: <b>1923</b>
-            </p>
           </div>
 
           <div className="flex gap-2 pt-1">
