@@ -119,7 +119,11 @@ export function computeInstallmentPlan({ saleK, downK, installmentsK, start }) {
       vadeFarkiK: 0,
       balonTotalK: 0,
       totalK: cashK,
+      grandTotalK: cashK,
       extraCostK: -discountK,
+      monthsPassed: N,
+      installmentCount: N,
+      totalInstallmentsK: 0,
       rows,
     };
   }
@@ -159,6 +163,10 @@ export function computeInstallmentPlan({ saleK, downK, installmentsK, start }) {
     vadeFarkiK,
     balonTotalK,
     totalK,
+    grandTotalK: totalK,
+    monthsPassed: N,
+    installmentCount: N,
+    totalInstallmentsK: paidK,
     extraCostK: totalK - saleK,
     rows,
   };
@@ -167,5 +175,12 @@ export function computeInstallmentPlan({ saleK, downK, installmentsK, start }) {
 /** Peşin plan özeti */
 export function computeCashPlan(saleK) {
   const cashK = cashPriceK(saleK);
-  return { saleK, cashK, discountK: saleK - cashK, discountPct: FINANCE.cashDiscountPct, totalK: cashK };
+  return {
+    saleK,
+    cashK,
+    finalK: cashK,
+    discountK: saleK - cashK,
+    discountPct: FINANCE.cashDiscountPct,
+    totalK: cashK,
+  };
 }
