@@ -10,7 +10,17 @@ import InteractiveFloorPlan from './InteractiveFloorPlan';
  * - Sayfa 1: Teklif Özeti, Finansal Rakamlar, Ödeme Takvimi ve Resmi Kaşe/İmza
  * - Sayfa 2: Sözleşme Eki Kat & Bağımsız Bölüm Yerleşim Şeması (İzometrik Şema + Dinamik İşaretli)
  */
-export default function PrintOffer({ apt, saleK, paymentType, plan, cashPlan, customerName, offerNo }) {
+export default function PrintOffer({
+  apt,
+  saleK,
+  paymentType,
+  plan,
+  cashPlan,
+  customerName,
+  offerNo,
+  apartments = null,
+  soldMap = {},
+}) {
   const today = new Date();
   const validUntil = new Date(today.getTime() + PROJECT.offerValidityDays * 86400000);
   const cell = 'border border-slate-300 px-2 py-0.5';
@@ -270,6 +280,8 @@ export default function PrintOffer({ apt, saleK, paymentType, plan, cashPlan, cu
               selectedApt={apt}
               isPrint={true}
               maxWidth="max-w-[520px]"
+              apartments={apartments}
+              soldMap={soldMap}
             />
           </div>
 

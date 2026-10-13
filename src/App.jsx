@@ -7,7 +7,9 @@ import FinancialSummary from './components/FinancialSummary';
 import OfferPanel from './components/OfferPanel';
 import PrintOffer from './components/PrintOffer';
 import FloorPlanModal from './components/FloorPlanModal';
-import AdminPriceModal from './components/AdminPriceModal';
+import AdminControlModal from './components/AdminControlModal';
+import AdminPinModal from './components/AdminPinModal';
+import SaleRecordModal from './components/SaleRecordModal';
 import { APARTMENT_DATA, aptId } from './data/apartments';
 import {
   salePriceK, minDownK, clampDown, downFromPct, monthsUntilMaturity, scheduleMonths, startMonthOptions,
@@ -43,7 +45,36 @@ export default function App() {
     } catch {}
     return DEFAULT_BASE_PRICES;
   });
-  const [adminOpen, setAdminOpen] = useState(false);
+
+  // Satış Kayıtları (localStorage)
+  const [sales, setSales] = useState(() => {
+    try {
+      const saved = localStorage.getItem('as_yapsat_sales');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  // Yönetici PIN Kodu (localStorage)
+  const [adminPin, setAdminPin] = useState(() => {
+    try {
+      const saved = localStorage.getItem('as_yapsat_admin_pin');
+      if (saved) return saved;
+    } catch {}
+    return '1923';
+  });
+
+  // Yönetici Oturumu & Modal Kontrolleri
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [adminControlOpen, setAdminControlOpen] = useState(false);
+  const [saleModalOpen, setSaleModalOpen] = useState(false);
+  const [saleTargetApt, setSaleTargetApt] = useState(null);
+  const [editingSaleRecord, setEditingSaleRecord] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null);
 
   // Baz fiyatlara göre dinamik güncellenen daire verisi
   const apartments = useMemo(() => {
@@ -52,6 +83,16 @@ export default function App() {
       bazFiyat: basePrices[a.tip] || a.bazFiyat,
     }));
   }, [basePrices]);
+
+  // Satılan dairelerin hızlı eşleşme haritası: { "A-14": saleRecord, ... }
+  const soldMap = useMemo(() => {
+    return sales.reduce((acc, s) => {
+      if (s && s.aptNo) {
+        acc[s.aptNo] = s;
+      }
+      return acc;
+    }, {});
+  }, [sales]);
 
   const [block, setBlock] = useState('A');
   const [selectedNo, setSelectedNo] = useState(APARTMENT_DATA[0].no);
@@ -111,19 +152,42 @@ export default function App() {
 
   const minInstK = minInstallmentForTipK(apt.tip);
 
-  // ---------- Yardımcılar ----------
+  // ---------- Bildirimler & Yardımcılar ----------
   const notify = (type, text) => {
     clearTimeout(noticeTimer.current);
     setNotice({ type, text });
     noticeTimer.current = setTimeout(() => setNotice(null), 4500);
   };
 
+  // Yönetici Yetki Doğrulama & Tetikleme
+  const requireAdmin = (actionCallback) => {
+    if (isAdmin) {
+      actionCallback();
+    } else {
+      setPendingAction(() => actionCallback);
+      setPinModalOpen(true);
+    }
+  };
+
+  const handlePinSuccess = () => {
+    setIsAdmin(true);
+    setPinModalOpen(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    } else {
+      setAdminControlOpen(true);
+    }
+    notify('ok', 'Yönetici girişi başarıyla doğrulandı.');
+  };
+
+  // Baz Fiyat Kaydet / Sıfırla
   const handleSaveBasePrices = (newPrices) => {
     setBasePrices(newPrices);
     try {
       localStorage.setItem('as_yapsat_base_prices', JSON.stringify(newPrices));
     } catch {}
-    notify('ok', 'Baz fiyatlar başarıyla güncellendi.');
+    notify('ok', 'Baz fiyatlar başarıyla güncellendi ve tüm panellere yansıtıldı.');
   };
 
   const handleResetBasePrices = () => {
@@ -134,7 +198,64 @@ export default function App() {
     notify('ok', 'Baz fiyatlar varsayılan değerlere sıfırlandı.');
   };
 
-  // ---------- Olaylar ----------
+  // Satış Kaydetme / Düzenleme
+  const handleSaveSale = (saleRecord) => {
+    setSales((prev) => {
+      const filtered = prev.filter((s) => s.aptNo !== saleRecord.aptNo);
+      const next = [saleRecord, ...filtered];
+      try {
+        localStorage.setItem('as_yapsat_sales', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    notify('ok', `${saleRecord.aptNo} numaralı daire için satış kaydı başarıyla oluşturuldu!`);
+  };
+
+  // Satış İptal Et / Sil
+  const handleDeleteSale = (aptNo) => {
+    setSales((prev) => {
+      const next = prev.filter((s) => s.aptNo !== aptNo);
+      try {
+        localStorage.setItem('as_yapsat_sales', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    notify('ok', `${aptNo} numaralı dairenin satış kaydı silindi, daire tekrar satışa açıldı.`);
+  };
+
+  // PIN Değiştirme
+  const handleChangePin = (newPin) => {
+    setAdminPin(newPin);
+    try {
+      localStorage.setItem('as_yapsat_admin_pin', newPin);
+    } catch {}
+    notify('ok', 'Yönetici PIN kodu başarıyla güncellendi.');
+  };
+
+  // Mevcut Teklifi Satışa Dönüştür (Hızlı Aksiyon)
+  const handleConvertToSale = (targetApartment) => {
+    requireAdmin(() => {
+      const target = targetApartment || apt;
+      const initialNotes = paymentType === 'cash'
+        ? `Peşin Satış Sözleşmesi (%${FINANCE.cashDiscountPct} indirim uygulandı).`
+        : `${plan.installmentCount} Ay Vadeli: ${formatTL(effectiveDownK)} peşinat + ${formatTL(plan.totalInstallmentsK)} taksitler toplamı + ${formatTL(plan.balonTotalK)} teslimat kapanış tutarı.`;
+
+      setSaleTargetApt(target);
+      setEditingSaleRecord({
+        aptNo: target.no,
+        customerName: customerName || '',
+        phone: '',
+        date: new Date().toISOString().split('T')[0],
+        salePriceK: paymentType === 'cash' ? cashPlan.finalK : saleK,
+        paymentType,
+        downPaymentK: paymentType === 'cash' ? cashPlan.finalK : effectiveDownK,
+        notes: initialNotes,
+      });
+      setSaleModalOpen(true);
+    });
+  };
+
+  // Daire Seçimi
   const handleBlockChange = (newBlock) => {
     setBlock(newBlock);
     const firstAptInBlock = apartments.find((a) => a.blok === newBlock);
@@ -170,7 +291,6 @@ export default function App() {
   const handleModeChange = (m) => {
     if (m === mode) return;
     if (m === 'flex') {
-      // Eşit dağıtımı esnek moda başlangıç değeri olarak aktar
       const map = {};
       months.forEach((ym, i) => { map[ymKey(ym)] = installmentsK[i] || 0; });
       setFlexMap(map);
@@ -228,7 +348,7 @@ export default function App() {
   return (
     <>
       <div className="min-h-screen bg-slate-100 print:hidden">
-        <Header onOpenAdmin={() => setAdminOpen(true)} />
+        <Header onOpenAdmin={() => requireAdmin(() => setAdminControlOpen(true))} />
         <main className="mx-auto grid max-w-[1500px] gap-5 p-5 lg:grid-cols-2 2xl:grid-cols-[430px_1fr_360px]">
           <div className="space-y-5">
             <ApartmentGrid
@@ -237,8 +357,23 @@ export default function App() {
               selectedId={aptId(apt)}
               onSelect={handleSelect}
               onOpenFloorPlan={() => setFloorPlanOpen(true)}
+              apartments={apartments}
+              soldMap={soldMap}
             />
-            <ApartmentSummary apt={apt} saleK={saleK} />
+            <ApartmentSummary
+              apt={apt}
+              saleK={saleK}
+              saleRecord={soldMap[apt.no]}
+              isAdmin={isAdmin}
+              onConvertToSale={() => handleConvertToSale(apt)}
+              onViewSaleRecord={(rec, a) => {
+                requireAdmin(() => {
+                  setSaleTargetApt(a);
+                  setEditingSaleRecord(rec);
+                  setSaleModalOpen(true);
+                });
+              }}
+            />
           </div>
 
           <div className="lg:row-span-2 2xl:row-span-1">
@@ -274,6 +409,8 @@ export default function App() {
               onOfferNoChange={setOfferNo}
               onExcel={handleExcel}
               onPrint={() => window.print()}
+              isSold={Boolean(soldMap[apt.no])}
+              onConvertToSale={() => handleConvertToSale(apt)}
             />
           </aside>
         </main>
@@ -287,6 +424,8 @@ export default function App() {
         cashPlan={cashPlan}
         customerName={customerName}
         offerNo={offerNo}
+        apartments={apartments}
+        soldMap={soldMap}
       />
 
       <FloorPlanModal
@@ -294,14 +433,56 @@ export default function App() {
         onClose={() => setFloorPlanOpen(false)}
         selectedApt={apt}
         onSelectApt={handleSelect}
+        apartments={apartments}
+        soldMap={soldMap}
       />
 
-      <AdminPriceModal
-        isOpen={adminOpen}
-        onClose={() => setAdminOpen(false)}
+      <AdminControlModal
+        isOpen={adminControlOpen}
+        onClose={() => setAdminControlOpen(false)}
+        apartments={apartments}
+        sales={sales}
+        soldMap={soldMap}
         basePrices={basePrices}
-        onSave={handleSaveBasePrices}
-        onReset={handleResetBasePrices}
+        adminPin={adminPin}
+        onSaveBasePrices={handleSaveBasePrices}
+        onResetBasePrices={handleResetBasePrices}
+        onSaveSale={handleSaveSale}
+        onDeleteSale={handleDeleteSale}
+        onChangePin={handleChangePin}
+        onOpenNewSale={(target) => {
+          setSaleTargetApt(target || apt);
+          setEditingSaleRecord(null);
+          setSaleModalOpen(true);
+        }}
+        onEditSale={(rec, target) => {
+          setSaleTargetApt(target || apartments.find((a) => a.no === rec.aptNo));
+          setEditingSaleRecord(rec);
+          setSaleModalOpen(true);
+        }}
+      />
+
+      <SaleRecordModal
+        isOpen={saleModalOpen}
+        onClose={() => {
+          setSaleModalOpen(false);
+          setEditingSaleRecord(null);
+        }}
+        targetApt={saleTargetApt || apt}
+        initialRecord={editingSaleRecord}
+        apartments={apartments}
+        onSave={handleSaveSale}
+        onDelete={handleDeleteSale}
+      />
+
+      <AdminPinModal
+        isOpen={pinModalOpen}
+        onClose={() => {
+          setPinModalOpen(false);
+          setPendingAction(null);
+        }}
+        onSuccess={handlePinSuccess}
+        currentPin={adminPin}
       />
     </>
   );

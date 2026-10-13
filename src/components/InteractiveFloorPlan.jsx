@@ -15,12 +15,22 @@ export default function InteractiveFloorPlan({
   onSelectApt = null,
   isPrint = false,
   maxWidth = 'max-w-[540px]',
+  apartments = null,
+  soldMap = {},
 }) {
   const selectedNo = selectedApt?.no;
   const [hoveredNo, setHoveredNo] = useState(null);
 
   const selectedCoord = selectedNo ? FLAT_COORDINATES[selectedNo] : null;
   const hoveredCoord = hoveredNo ? FLAT_COORDINATES[hoveredNo] : null;
+
+  const getApt = (no) => {
+    if (apartments) {
+      const found = apartments.find((a) => a.no === no);
+      if (found) return found;
+    }
+    return findApartmentByNo(no);
+  };
 
   return (
     <div className={`relative mx-auto w-full ${maxWidth} select-none`}>
@@ -59,7 +69,8 @@ export default function InteractiveFloorPlan({
         {Object.values(FLAT_COORDINATES).map((coord) => {
           const isSelected = coord.no === selectedNo;
           const isHovered = coord.no === hoveredNo;
-          const aptObj = findApartmentByNo(coord.no);
+          const aptObj = getApt(coord.no);
+          const isSold = Boolean(soldMap[coord.no]);
 
           return (
             <g
@@ -78,11 +89,21 @@ export default function InteractiveFloorPlan({
                 // SEÇİLİ DAİRE VURGUSU
                 <polygon
                   points={coord.svgPoints}
-                  fill="rgba(245, 158, 11, 0.40)"
-                  stroke="#b45309"
+                  fill={isSold ? "rgba(225, 29, 72, 0.45)" : "rgba(245, 158, 11, 0.40)"}
+                  stroke={isSold ? "#be123c" : "#b45309"}
                   strokeWidth="3.5"
                   strokeLinejoin="round"
                   className="transition-all duration-300"
+                />
+              ) : isSold ? (
+                // SATILMIŞ DAİRE VURGUSU
+                <polygon
+                  points={coord.svgPoints}
+                  fill="rgba(239, 68, 68, 0.22)"
+                  stroke="#e11d48"
+                  strokeWidth="2"
+                  strokeDasharray="4 2"
+                  strokeLinejoin="round"
                 />
               ) : isHovered ? (
                 // HOVER VURGUSU (Sadece İnteraktif Modda)

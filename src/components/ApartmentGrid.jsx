@@ -15,9 +15,17 @@ const shortMoney = (k) => {
   return `${(tl / 1_000_000).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M`;
 };
 
-export default function ApartmentGrid({ block, onBlockChange, selectedId, onSelect, onOpenFloorPlan }) {
+export default function ApartmentGrid({
+  block,
+  onBlockChange,
+  selectedId,
+  onSelect,
+  onOpenFloorPlan,
+  apartments = APARTMENT_DATA,
+  soldMap = {},
+}) {
   const cepheler = BLOCK_CEPHELER[block];
-  const count = APARTMENT_DATA.filter((a) => a.blok === block).length;
+  const count = apartments.filter((a) => a.blok === block).length;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -71,62 +79,93 @@ export default function ApartmentGrid({ block, onBlockChange, selectedId, onSele
           ))}
 
           {KAT_ORDER.map((kat) => (
-            <Row key={kat} kat={kat} block={block} cepheler={cepheler} selectedId={selectedId} onSelect={onSelect} />
+            <Row
+              key={kat}
+              kat={kat}
+              block={block}
+              cepheler={cepheler}
+              selectedId={selectedId}
+              onSelect={onSelect}
+              apartments={apartments}
+              soldMap={soldMap}
+            />
           ))}
         </div>
         <div className="mt-2 h-1.5 rounded bg-slate-700" aria-hidden />
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-slate-500">
-        <Legend cls="bg-emerald-100 border-emerald-300" label="Katsayı ≥ 104" />
-        <Legend cls="bg-sky-100 border-sky-300" label="100 – 103" />
-        <Legend cls="bg-slate-100 border-slate-300" label="95 – 99" />
-        <Legend cls="bg-amber-100 border-amber-300" label="< 95" />
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500">
+        <div className="flex flex-wrap gap-3">
+          <Legend cls="bg-emerald-100 border-emerald-300" label="Katsayı ≥ 104" />
+          <Legend cls="bg-sky-100 border-sky-300" label="100 – 103" />
+          <Legend cls="bg-slate-100 border-slate-300" label="95 – 99" />
+          <Legend cls="bg-amber-100 border-amber-300" label="< 95" />
+        </div>
+        <div className="flex items-center gap-1.5 font-bold text-rose-600">
+          <span className="size-3 rounded border border-rose-300 bg-rose-100" />
+          Satılan Daire
+        </div>
       </div>
     </section>
   );
 }
 
-function Row({ kat, block, cepheler, selectedId, onSelect }) {
+function Row({ kat, block, cepheler, selectedId, onSelect, apartments, soldMap }) {
   return (
     <>
       <div className="flex items-center justify-center rounded-lg bg-slate-800 text-xs font-bold text-white">
         {kat === 'Z' ? 'Zemin' : `${kat}. Kat`}
       </div>
       {cepheler.map((c) => {
-        const apt = findApartment(block, kat, c);
+        const apt = apartments.find((a) => a.blok === block && a.kat === kat && a.cephe === c);
         if (!apt) return <div key={c} />;
         const id = aptId(apt);
         const active = id === selectedId;
+        const isSold = Boolean(soldMap[apt.no]);
+
         return (
           <button
             key={c}
             onClick={() => onSelect(apt)}
             aria-pressed={active}
-            title={`${apt.blok} Blok ${kat === 'Z' ? 'Zemin' : kat + '. Kat'} ${c} · ${formatNumber(salePriceK(apt))} TL`}
-            className={`group rounded-lg border-2 px-2 py-1.5 text-left transition ${
-              active
-                ? 'border-amber-500 bg-slate-900 text-white shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/40'
-                : `${tone(apt.katsayi)} text-slate-700`
+            title={`${apt.blok} Blok ${kat === 'Z' ? 'Zemin' : kat + '. Kat'} ${c} · ${formatNumber(salePriceK(apt))} TL${isSold ? ' (SATILDI)' : ''}`}
+            className={`group relative rounded-lg border-2 px-2 py-1.5 text-left transition ${
+              isSold
+                ? active
+                  ? 'border-rose-500 bg-rose-950 text-white shadow-lg shadow-rose-500/20 ring-2 ring-rose-400'
+                  : 'border-rose-200 bg-rose-50/70 text-slate-600 hover:border-rose-400'
+                : active
+                  ? 'border-amber-500 bg-slate-900 text-white shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/40'
+                  : `${tone(apt.katsayi)} text-slate-700`
             }`}
           >
             <div className="flex items-center justify-between gap-1">
-              <span className="text-xs font-black tracking-tight">
+              <span className={`text-xs font-black tracking-tight ${isSold && !active ? 'text-slate-800 line-through opacity-75' : ''}`}>
                 {apt.no || `${apt.blok}${kat}-${c}`}
               </span>
-              <span
-                className={`rounded px-1 text-[9px] font-bold ${
-                  apt.tip === '3+1'
-                    ? active ? 'bg-amber-400 text-slate-900' : 'bg-indigo-100 text-indigo-700'
-                    : active ? 'bg-white/20 text-white' : 'bg-white text-slate-600'
-                }`}
-              >
-                {apt.tip}
-              </span>
+              {isSold ? (
+                <span className="rounded bg-rose-600 px-1 py-0.2 text-[8px] font-black uppercase tracking-wider text-white shadow-xs">
+                  SATILDI
+                </span>
+              ) : (
+                <span
+                  className={`rounded px-1 text-[9px] font-bold ${
+                    apt.tip === '3+1'
+                      ? active ? 'bg-amber-400 text-slate-900' : 'bg-indigo-100 text-indigo-700'
+                      : active ? 'bg-white/20 text-white' : 'bg-white text-slate-600'
+                  }`}
+                >
+                  {apt.tip}
+                </span>
+              )}
             </div>
             <div className="mt-0.5 flex items-center justify-between text-[11px]">
-              <span className={active ? 'text-amber-300' : 'text-slate-500'}>×{apt.katsayi}</span>
-              <span className="font-semibold tabular-nums">{shortMoney(salePriceK(apt))}</span>
+              <span className={active ? 'text-amber-300' : isSold ? 'text-rose-600 font-semibold' : 'text-slate-500'}>
+                {isSold ? 'MÜŞTERİYE KAPALI' : `×${apt.katsayi}`}
+              </span>
+              <span className={`font-semibold tabular-nums ${isSold && !active ? 'text-slate-400 line-through' : ''}`}>
+                {shortMoney(salePriceK(apt))}
+              </span>
             </div>
           </button>
         );

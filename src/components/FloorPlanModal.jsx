@@ -6,7 +6,14 @@ import { aptShortCode } from '../data/apartments';
  * Kat Planı & Blok Yerleşim Şeması Modal / Önizleme Bileşeni
  * Gerçek izometrik şema üzerinden interaktif daire seçimini ve vurgulamayı sunar.
  */
-export default function FloorPlanModal({ isOpen, onClose, selectedApt, onSelectApt }) {
+export default function FloorPlanModal({
+  isOpen,
+  onClose,
+  selectedApt,
+  onSelectApt,
+  apartments = null,
+  soldMap = {},
+}) {
   if (!isOpen) return null;
 
   return (
@@ -70,6 +77,8 @@ export default function FloorPlanModal({ isOpen, onClose, selectedApt, onSelectA
                 selectedApt={selectedApt}
                 onSelectApt={onSelectApt}
                 maxWidth="max-w-[660px]"
+                apartments={apartments}
+                soldMap={soldMap}
               />
             </div>
           </div>
