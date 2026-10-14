@@ -1,6 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Varsayılan veya localStorage'dan Supabase konfigürasyonunu al
+// Doğrulanmış As İnşaat Konut Satış Supabase Bulut Veritabanı Bilgileri
+const DEFAULT_SUPABASE_CONFIG = {
+  url: 'https://mxkymvauuurcfhyruatg.supabase.co',
+  anonKey:
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14a3ltdmF1dXVyY2ZoeXJ1YXRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5NjQwNTgsImV4cCI6MjEwNzU0MDA1OH0.Wdi53kzWjMrhNGgmx9zr7xo1RB-fC9f9viRujVmy_Q0',
+};
+
+// Varsayılan, .env veya localStorage'dan Supabase konfigürasyonunu al
 export function getSupabaseConfig() {
   try {
     const saved = localStorage.getItem('as_yapsat_supabase_config');
@@ -18,7 +25,7 @@ export function getSupabaseConfig() {
     return { url: envUrl, anonKey: envKey };
   }
 
-  return { url: '', anonKey: '' };
+  return DEFAULT_SUPABASE_CONFIG;
 }
 
 export function isSupabaseConfigured() {
