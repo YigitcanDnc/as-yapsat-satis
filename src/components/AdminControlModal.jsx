@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DollarSign,
   X,
   Plus,
   Search,
   CheckCircle2,
+  AlertCircle,
   RotateCcw,
   Save,
   Edit3,
@@ -13,11 +14,20 @@ import {
   Building,
   Download,
   Upload,
+  Cloud,
+  Database,
+  ExternalLink,
 } from 'lucide-react';
 import MoneyInput from './MoneyInput';
 import { formatTL, formatDate } from '../lib/format';
 import { salePriceK } from '../lib/finance';
 import { katLabel } from '../data/apartments';
+import {
+  getSupabaseConfig,
+  saveSupabaseConfig,
+  testSupabaseConnection,
+  isSupabaseConfigured,
+} from '../lib/supabase';
 
 export default function AdminControlModal({
   isOpen,
@@ -26,6 +36,8 @@ export default function AdminControlModal({
   sales = [],
   soldMap = {},
   basePrices,
+  cloudConnected = false,
+  onCloudConfigured,
   onSaveBasePrices,
   onResetBasePrices,
   onSaveSale,
@@ -34,13 +46,28 @@ export default function AdminControlModal({
   onOpenNewSale,
   onEditSale,
 }) {
-  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'prices'
+  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'prices' | 'cloud'
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // 'all' | 'sold' | 'available' | 'blockA' | 'blockB'
 
   // Baz fiyat formu state
   const [prices, setPrices] = useState(basePrices);
   const [priceSuccess, setPriceSuccess] = useState(false);
+
+  // Bulut (Supabase) formu state
+  const [supabaseUrl, setSupabaseUrl] = useState('');
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState('');
+  const [cloudTesting, setCloudTesting] = useState(false);
+  const [cloudMsg, setCloudMsg] = useState(null); // { type: 'ok' | 'err', text: '' }
+
+  useEffect(() => {
+    if (isOpen) {
+      const cfg = getSupabaseConfig();
+      setSupabaseUrl(cfg.url || '');
+      setSupabaseAnonKey(cfg.anonKey || '');
+      setCloudMsg(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -56,13 +83,11 @@ export default function AdminControlModal({
     const isSold = Boolean(soldMap[apt.no]);
     const sale = soldMap[apt.no];
 
-    // Blok filtresi
     if (filter === 'blockA' && apt.blok !== 'A') return false;
     if (filter === 'blockB' && apt.blok !== 'B') return false;
     if (filter === 'sold' && !isSold) return false;
     if (filter === 'available' && isSold) return false;
 
-    // Arama filtresi
     if (search.trim()) {
       const q = search.toLowerCase().trim();
       const matchNo = apt.no.toLowerCase().includes(q);
@@ -95,7 +120,7 @@ export default function AdminControlModal({
   };
 
   const handleResetPrices = () => {
-    if (window.confirm('Baz fiyatları fabrika/varsayılan ayarlarına (6.000.000 TL ve 8.500.000 TL) döndürmek istediğinize emin misiniz?')) {
+    if (window.confirm('Baz fiyatları fabrika/varsayılan ayarlarına döndürmek istediğinize emin misiniz?')) {
       onResetBasePrices();
       setPrices({ '2+1': 6000000, '3+1': 8500000 });
       setPriceSuccess(true);
@@ -137,6 +162,27 @@ export default function AdminControlModal({
     e.target.value = '';
   };
 
+  // Bulut Bağlantısı Test Et ve Kaydet
+  const handleSaveCloud = async (e) => {
+    e.preventDefault();
+    setCloudTesting(true);
+    setCloudMsg(null);
+
+    const test = await testSupabaseConnection(supabaseUrl, supabaseAnonKey);
+    setCloudTesting(false);
+
+    if (test.ok) {
+      saveSupabaseConfig({ url: supabaseUrl, anonKey: supabaseAnonKey });
+      setCloudMsg({ type: 'ok', text: 'Supabase bulut bağlantısı başarıyla sağlandı ve kaydedildi! Canlı senkronizasyon devrede.' });
+      onCloudConfigured?.();
+    } else {
+      setCloudMsg({
+        type: 'err',
+        text: `Bağlantı sağlanamadı: ${test.error}. Lütfen URL ve Anon Key'i kontrol ediniz veya SQL şemasını çalıştırdığınızdan emin olunuz.`,
+      });
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-3 sm:p-5 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative flex max-h-[94vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
@@ -147,9 +193,20 @@ export default function AdminControlModal({
               <Building className="size-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Yönetici Kontrol Merkezi</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-white">Yönetici Kontrol Merkezi</h3>
+                {cloudConnected ? (
+                  <span className="flex items-center gap-1 rounded bg-emerald-950 border border-emerald-700/80 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                    <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" /> Bulut Aktif
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 rounded bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] font-semibold text-slate-400">
+                    Yerel Mod
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400">
-                Satış Portföyü · Satılan Daireler · Taksit Bilgileri · Baz Fiyat Yönetimi
+                Satış Portföyü · Satılan Daireler · Taksit Bilgileri · Baz Fiyatlar · Bulut Senkronizasyonu
               </p>
             </div>
           </div>
@@ -184,6 +241,18 @@ export default function AdminControlModal({
           >
             <DollarSign className="size-4 text-emerald-600" />
             Baz Fiyatlar (2+1 / 3+1)
+          </button>
+          <button
+            onClick={() => setActiveTab('cloud')}
+            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition ${
+              activeTab === 'cloud'
+                ? 'border-amber-500 text-slate-900 bg-white'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Cloud className={`size-4 ${cloudConnected ? 'text-emerald-600' : 'text-slate-400'}`} />
+            Bulut & Veritabanı
+            {cloudConnected && <span className="size-1.5 rounded-full bg-emerald-500" />}
           </button>
         </div>
 
@@ -492,6 +561,141 @@ export default function AdminControlModal({
                   >
                     <Save className="size-3.5 text-amber-400" /> Fiyatları Kaydet
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: BULUT & VERİTABANI (SUPABASE) */}
+          {activeTab === 'cloud' && (
+            <div className="max-w-xl mx-auto space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Database className="size-5 text-indigo-600" />
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Supabase Canlı Bulut Veritabanı</h4>
+                      <p className="text-[11px] text-slate-500">Tüm cihazlar arasında anlık canlı senkronizasyon</p>
+                    </div>
+                  </div>
+                  {cloudConnected ? (
+                    <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
+                      <span className="size-2 rounded-full bg-emerald-500 animate-pulse" /> Canlı Bağlı
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                      Yerel Mod
+                    </span>
+                  )}
+                </div>
+
+                {cloudConnected ? (
+                  <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-emerald-900 flex items-start gap-2.5">
+                    <CheckCircle2 className="size-5 shrink-0 text-emerald-600 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Bulut Bağlantısı Başarıyla Aktif!</p>
+                      <p className="text-[11px] text-emerald-700 mt-0.5 leading-relaxed">
+                        Farklı bilgisayarlardan, cep telefonlarından veya tabletlerden girilen tüm satışlar ve baz fiyatlar anında birbirine eşitlenir. Sayfayı yenilemeye gerek kalmadan diğer cihazlarda canlı güncellenir.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-amber-900 flex items-start gap-2.5">
+                    <AlertCircle className="size-5 shrink-0 text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Şu Anda Yerel Tarayıcı Modundasınız</p>
+                      <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                        Satış kayıtları yalnızca bu bilgisayarda saklanıyor. Tüm ofis ve satış ekibinin aynı verileri canlı görmesi için ücretsiz bir Supabase projesi oluşturup aşağıdaki bilgileri doldurmanız yeterlidir.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveCloud} className="space-y-3 pt-1">
+                  <div>
+                    <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Supabase Project URL
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      placeholder="https://xyzcompany.supabase.co"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-600">
+                      Supabase Anon (Public) Key
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={supabaseAnonKey}
+                      onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                    <p className="mt-1 text-[10.5px] text-slate-400">
+                      Project Settings &gt; API menüsündeki anon/public anahtardır. Müşteri tekliflerinde görünmez.
+                    </p>
+                  </div>
+
+                  {cloudMsg && (
+                    <div
+                      className={`flex items-start gap-2 rounded-xl p-3 text-xs leading-relaxed animate-in fade-in ${
+                        cloudMsg.type === 'ok'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : 'bg-rose-50 text-rose-800 border border-rose-200'
+                      }`}
+                    >
+                      {cloudMsg.type === 'ok' ? (
+                        <CheckCircle2 className="size-4 shrink-0 text-emerald-600 mt-0.5" />
+                      ) : (
+                        <AlertCircle className="size-4 shrink-0 text-rose-600 mt-0.5" />
+                      )}
+                      <span>{cloudMsg.text}</span>
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={cloudTesting}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow hover:bg-indigo-700 transition disabled:opacity-50"
+                    >
+                      {cloudTesting ? (
+                        <>Bağlantı Test Ediliyor...</>
+                      ) : (
+                        <>
+                          <Cloud className="size-4 text-indigo-200" /> Bağlantıyı Test Et ve Kaydet
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Kolay Kurulum Rehberi */}
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-600 space-y-2">
+                  <p className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <Database className="size-4 text-indigo-500" /> 2 Dakikada Ücretsiz Supabase Kurulumu:
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-600 leading-relaxed">
+                    <li>
+                      <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold hover:underline inline-flex items-center gap-1">
+                        supabase.com <ExternalLink className="size-2.5" />
+                      </a>{' '}
+                      adresine gidip ücretsiz hesap açın ve <b>"New Project"</b> butonuna basarak bir proje adı belirleyin.
+                    </li>
+                    <li>
+                      Sol menüden <b>SQL Editor</b> sekmesine geçin. Projedeki <code>supabase-schema.sql</code> dosyasının içeriğini yapıştırıp <b>Run</b> butonuna basın. (Gerekli tablolar saniyeler içinde oluşur).
+                    </li>
+                    <li>
+                      Sol alttan <b>Project Settings &gt; API</b> bölümüne gidip <b>Project URL</b> ve <b>anon public key</b> değerlerini yukarıdaki kutulara yapıştırıp kaydedin.
+                    </li>
+                  </ol>
                 </div>
               </div>
             </div>

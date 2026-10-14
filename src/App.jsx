@@ -17,6 +17,15 @@ import {
 } from './lib/finance';
 import { formatTL } from './lib/format';
 import { PROJECT, FINANCE } from './config/project';
+import {
+  isSupabaseConfigured,
+  fetchCloudSales,
+  upsertCloudSale,
+  deleteCloudSale,
+  fetchCloudBasePrices,
+  saveCloudBasePrices,
+  subscribeToCloudChanges,
+} from './lib/supabase';
 
 const DEFAULT_BASE_PRICES = {
   '2+1': 6000000,
@@ -57,6 +66,70 @@ export default function App() {
     } catch {}
     return [];
   });
+
+  // Bulut Veritabanı (Supabase) Durumu
+  const [cloudConnected, setCloudConnected] = useState(() => isSupabaseConfigured());
+
+  // Bulut Veritabanı Senkronizasyonu & Canlı Dinleyici (WebSocket)
+  useEffect(() => {
+    let unsubscribe = () => {};
+    let isMounted = true;
+
+    async function syncCloud() {
+      if (!isSupabaseConfigured()) {
+        setCloudConnected(false);
+        return;
+      }
+
+      setCloudConnected(true);
+
+      // 1. Bulut Baz Fiyatları Çek
+      const cloudPrices = await fetchCloudBasePrices();
+      if (cloudPrices && isMounted) {
+        setBasePrices(cloudPrices);
+        try {
+          localStorage.setItem('as_yapsat_base_prices', JSON.stringify(cloudPrices));
+        } catch {}
+      }
+
+      // 2. Bulut Satış Kayıtlarını Çek
+      const cloudSales = await fetchCloudSales();
+      if (cloudSales && Array.isArray(cloudSales) && isMounted) {
+        setSales(cloudSales);
+        try {
+          localStorage.setItem('as_yapsat_sales', JSON.stringify(cloudSales));
+        } catch {}
+      }
+
+      // 3. Canlı Değişiklikleri Dinle (WebSocket)
+      unsubscribe = subscribeToCloudChanges(
+        async () => {
+          const latestSales = await fetchCloudSales();
+          if (latestSales && Array.isArray(latestSales) && isMounted) {
+            setSales(latestSales);
+            try {
+              localStorage.setItem('as_yapsat_sales', JSON.stringify(latestSales));
+            } catch {}
+          }
+        },
+        (newPrices) => {
+          if (newPrices && isMounted) {
+            setBasePrices(newPrices);
+            try {
+              localStorage.setItem('as_yapsat_base_prices', JSON.stringify(newPrices));
+            } catch {}
+          }
+        }
+      );
+    }
+
+    syncCloud();
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [cloudConnected]);
 
   // Yönetici PIN Kodu (Tüm cihazlarda ortak ve kalıcı: 1907)
   const adminPin = PROJECT.adminPin || '1907';
@@ -175,38 +248,75 @@ export default function App() {
     notify('ok', 'Yönetici girişi başarıyla doğrulandı.');
   };
 
+  const handleCloudConfigured = () => {
+    setCloudConnected(true);
+    notify('ok', 'Supabase bulut bağlantısı sağlandı ve veriler eşitlendi!');
+  };
+
   // Baz Fiyat Kaydet / Sıfırla
-  const handleSaveBasePrices = (newPrices) => {
+  const handleSaveBasePrices = async (newPrices) => {
     setBasePrices(newPrices);
     try {
       localStorage.setItem('as_yapsat_base_prices', JSON.stringify(newPrices));
     } catch {}
+
+    if (isSupabaseConfigured()) {
+      try {
+        await saveCloudBasePrices(newPrices);
+      } catch (err) {
+        console.error('Bulut baz fiyat kaydedilemedi:', err);
+      }
+    }
+
     notify('ok', 'Baz fiyatlar başarıyla güncellendi ve tüm panellere yansıtıldı.');
   };
 
-  const handleResetBasePrices = () => {
+  const handleResetBasePrices = async () => {
     setBasePrices(DEFAULT_BASE_PRICES);
     try {
       localStorage.removeItem('as_yapsat_base_prices');
     } catch {}
+
+    if (isSupabaseConfigured()) {
+      try {
+        await saveCloudBasePrices(DEFAULT_BASE_PRICES);
+      } catch (err) {
+        console.error('Bulut baz fiyat sıfırlanamadı:', err);
+      }
+    }
+
     notify('ok', 'Baz fiyatlar varsayılan değerlere sıfırlandı.');
   };
 
   // Satış Kaydetme / Düzenleme
-  const handleSaveSale = (saleRecord) => {
+  const handleSaveSale = async (saleRecord) => {
+    const recordWithTimestamp = {
+      ...saleRecord,
+      updatedAt: new Date().toISOString(),
+    };
+
     setSales((prev) => {
-      const filtered = prev.filter((s) => s.aptNo !== saleRecord.aptNo);
-      const next = [saleRecord, ...filtered];
+      const filtered = prev.filter((s) => s.aptNo !== recordWithTimestamp.aptNo);
+      const next = [recordWithTimestamp, ...filtered];
       try {
         localStorage.setItem('as_yapsat_sales', JSON.stringify(next));
       } catch {}
       return next;
     });
+
+    if (isSupabaseConfigured()) {
+      try {
+        await upsertCloudSale(recordWithTimestamp);
+      } catch (err) {
+        console.error('Bulut satış kaydı oluşturulamadı:', err);
+      }
+    }
+
     notify('ok', `${saleRecord.aptNo} numaralı daire için satış kaydı başarıyla oluşturuldu!`);
   };
 
   // Satış İptal Et / Sil
-  const handleDeleteSale = (aptNo) => {
+  const handleDeleteSale = async (aptNo) => {
     setSales((prev) => {
       const next = prev.filter((s) => s.aptNo !== aptNo);
       try {
@@ -214,16 +324,36 @@ export default function App() {
       } catch {}
       return next;
     });
+
+    if (isSupabaseConfigured()) {
+      try {
+        await deleteCloudSale(aptNo);
+      } catch (err) {
+        console.error('Bulut satış kaydı silinemedi:', err);
+      }
+    }
+
     notify('ok', `${aptNo} numaralı dairenin satış kaydı silindi, daire tekrar satışa açıldı.`);
   };
 
   // Portföyü İçe Aktar (Farklı bilgisayardan aktarım için)
-  const handleImportSales = (importedSales) => {
+  const handleImportSales = async (importedSales) => {
     if (Array.isArray(importedSales)) {
       setSales(importedSales);
       try {
         localStorage.setItem('as_yapsat_sales', JSON.stringify(importedSales));
       } catch {}
+
+      if (isSupabaseConfigured()) {
+        try {
+          for (const s of importedSales) {
+            await upsertCloudSale(s);
+          }
+        } catch (err) {
+          console.error('Bulut toplu aktarım başarısız oldu:', err);
+        }
+      }
+
       notify('ok', `${importedSales.length} adet satış kaydı başarıyla aktarıldı!`);
     }
   };
@@ -348,7 +478,10 @@ export default function App() {
   return (
     <>
       <div className="min-h-screen bg-slate-100 print:hidden">
-        <Header onOpenAdmin={() => requireAdmin(() => setAdminControlOpen(true))} />
+        <Header
+          onOpenAdmin={() => requireAdmin(() => setAdminControlOpen(true))}
+          cloudConnected={cloudConnected}
+        />
         <main className="mx-auto grid max-w-[1500px] gap-5 p-5 lg:grid-cols-2 2xl:grid-cols-[430px_1fr_360px]">
           <div className="space-y-5">
             <ApartmentGrid
@@ -444,6 +577,8 @@ export default function App() {
         sales={sales}
         soldMap={soldMap}
         basePrices={basePrices}
+        cloudConnected={cloudConnected}
+        onCloudConfigured={handleCloudConfigured}
         adminPin={adminPin}
         onSaveBasePrices={handleSaveBasePrices}
         onResetBasePrices={handleResetBasePrices}
