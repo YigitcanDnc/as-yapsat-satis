@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Lock, KeyRound, X, AlertCircle } from 'lucide-react';
 
-export default function AdminPinModal({ isOpen, onClose, onSuccess, currentPin = '1923' }) {
+export default function AdminPinModal({ isOpen, onClose, onSuccess, currentPin = '1907' }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
   const inputRef = useRef(null);

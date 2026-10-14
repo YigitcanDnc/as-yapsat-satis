@@ -104,17 +104,31 @@ export default function ApartmentSummary({
 
       {/* Satış Yetkisi / Yönetici Bilgisi veya Standart Peşin Fiyat */}
       {isSold && isAdmin ? (
-        <div className="flex flex-wrap items-center justify-between border-t border-rose-100 bg-rose-50 px-5 py-3 text-xs text-rose-900">
-          <div className="flex items-center gap-2">
-            <UserCheck className="size-4 text-rose-600" />
-            <div>
-              <p className="font-bold">Alıcı: {saleRecord.customerName}</p>
-              <p className="text-[10px] text-rose-700">Tarih: {saleRecord.date ? formatDate(new Date(saleRecord.date)) : '—'}</p>
+        <div className="border-t border-rose-100 bg-rose-50 px-5 py-3 text-xs text-rose-900 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <UserCheck className="size-4 text-rose-600 shrink-0" />
+              <div>
+                <p className="font-bold text-slate-900">Alıcı: {saleRecord.customerName}</p>
+                <p className="text-[10px] text-rose-700">Tarih: {saleRecord.date ? formatDate(new Date(saleRecord.date)) : '—'}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="font-bold text-rose-800">
+                {saleRecord.paymentType === 'cash' ? 'Peşin Satış' : 'Vadeli Satış'}
+              </span>
+              {saleRecord.paymentType !== 'cash' && saleRecord.installmentMonthlyK > 0 && (
+                <p className="text-[11px] font-black text-indigo-700">
+                  Taksit: {formatTL(saleRecord.installmentMonthlyK)} / ay
+                </p>
+              )}
             </div>
           </div>
-          <span className="font-semibold text-rose-800">
-            {saleRecord.paymentType === 'cash' ? 'Peşin Ödeme' : 'Vadeli Ödeme'}
-          </span>
+          {saleRecord.notes && (
+            <p className="pt-1.5 border-t border-rose-200/60 text-[10.5px] text-slate-700 leading-relaxed font-normal">
+              📝 <b>Satış Notu:</b> {saleRecord.notes}
+            </p>
+          )}
         </div>
       ) : (
         <div className="flex items-center justify-between border-t border-slate-100 bg-emerald-50 px-5 py-3 text-sm">

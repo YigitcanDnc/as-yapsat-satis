@@ -6,6 +6,7 @@ export const PROJECT = {
   phone: '+90 507 935 72 09',
   email: 'info@as-insaat.com.tr',
   offerValidityDays: 15,
+  adminPin: '1907',
 };
 
 /**

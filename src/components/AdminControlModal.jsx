@@ -1,27 +1,23 @@
 import { useState } from 'react';
 import {
-  Settings,
-  Building2,
   DollarSign,
-  KeyRound,
   X,
   Plus,
   Search,
   CheckCircle2,
-  AlertCircle,
   RotateCcw,
   Save,
   Edit3,
   Trash2,
-  TrendingUp,
   UserCheck,
   Building,
-  FileSpreadsheet,
+  Download,
+  Upload,
 } from 'lucide-react';
 import MoneyInput from './MoneyInput';
 import { formatTL, formatDate } from '../lib/format';
 import { salePriceK } from '../lib/finance';
-import { katLabel, CEPHE_LABELS } from '../data/apartments';
+import { katLabel } from '../data/apartments';
 
 export default function AdminControlModal({
   isOpen,
@@ -30,28 +26,21 @@ export default function AdminControlModal({
   sales = [],
   soldMap = {},
   basePrices,
-  adminPin,
   onSaveBasePrices,
   onResetBasePrices,
   onSaveSale,
   onDeleteSale,
-  onChangePin,
+  onImportSales,
   onOpenNewSale,
   onEditSale,
 }) {
-  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'prices' | 'security'
+  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'prices'
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // 'all' | 'sold' | 'available' | 'blockA' | 'blockB'
 
   // Baz fiyat formu state
   const [prices, setPrices] = useState(basePrices);
   const [priceSuccess, setPriceSuccess] = useState(false);
-
-  // PIN formu state
-  const [oldPin, setOldPin] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [pinSuccess, setPinSuccess] = useState(false);
-  const [pinError, setPinError] = useState('');
 
   if (!isOpen) return null;
 
@@ -80,7 +69,8 @@ export default function AdminControlModal({
       const matchCustomer = sale?.customerName?.toLowerCase().includes(q);
       const matchPhone = sale?.phone?.toLowerCase().includes(q);
       const matchBlok = `${apt.blok} blok`.toLowerCase().includes(q);
-      if (!matchNo && !matchCustomer && !matchPhone && !matchBlok) return false;
+      const matchNotes = sale?.notes?.toLowerCase().includes(q);
+      if (!matchNo && !matchCustomer && !matchPhone && !matchBlok && !matchNotes) return false;
     }
 
     return true;
@@ -95,13 +85,17 @@ export default function AdminControlModal({
   };
 
   const handleSavePrices = () => {
+    if (prices['2+1'] <= 0 || prices['3+1'] <= 0) {
+      alert('Baz fiyatlar 0 veya negatif olamaz!');
+      return;
+    }
     onSaveBasePrices(prices);
     setPriceSuccess(true);
     setTimeout(() => setPriceSuccess(false), 2000);
   };
 
   const handleResetPrices = () => {
-    if (window.confirm('Baz fiyatları fabrika/varsayılan ayarlarına döndürmek istediğinize emin misiniz?')) {
+    if (window.confirm('Baz fiyatları fabrika/varsayılan ayarlarına (6.000.000 TL ve 8.500.000 TL) döndürmek istediğinize emin misiniz?')) {
       onResetBasePrices();
       setPrices({ '2+1': 6000000, '3+1': 8500000 });
       setPriceSuccess(true);
@@ -109,22 +103,38 @@ export default function AdminControlModal({
     }
   };
 
-  const handlePinSubmit = (e) => {
-    e.preventDefault();
-    if (oldPin.trim() !== adminPin.trim()) {
-      setPinError('Mevcut PIN hatalı!');
-      return;
-    }
-    if (newPin.trim().length < 4) {
-      setPinError('Yeni PIN en az 4 haneli olmalıdır.');
-      return;
-    }
-    onChangePin(newPin.trim());
-    setPinSuccess(true);
-    setPinError('');
-    setOldPin('');
-    setNewPin('');
-    setTimeout(() => setPinSuccess(false), 2500);
+  // Portföy Yedeği İndir (JSON)
+  const handleExportBackup = () => {
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sales, null, 2));
+    const a = document.createElement('a');
+    a.setAttribute('href', dataStr);
+    a.setAttribute('download', `as-insaat-satis-kayitlari-${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  // Portföy Yedeği Yükle (JSON)
+  const handleImportBackup = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        if (Array.isArray(parsed) && onImportSales) {
+          if (window.confirm(`${parsed.length} adet satış kaydını sisteme aktarmak istediğinize emin misiniz?`)) {
+            onImportSales(parsed);
+          }
+        } else {
+          alert('Geçersiz dosya formatı. Lütfen geçerli bir JSON yedek dosyası seçiniz.');
+        }
+      } catch (err) {
+        alert('Dosya okunamadı: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   return (
@@ -139,7 +149,7 @@ export default function AdminControlModal({
             <div>
               <h3 className="text-base font-bold text-white">Yönetici Kontrol Merkezi</h3>
               <p className="text-xs text-slate-400">
-                Satış Portföyü · Satılan Daireler · Baz Fiyat Yönetimi · Sistem Güvenliği
+                Satış Portföyü · Satılan Daireler · Taksit Bilgileri · Baz Fiyat Yönetimi
               </p>
             </div>
           </div>
@@ -175,17 +185,6 @@ export default function AdminControlModal({
             <DollarSign className="size-4 text-emerald-600" />
             Baz Fiyatlar (2+1 / 3+1)
           </button>
-          <button
-            onClick={() => setActiveTab('security')}
-            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition ${
-              activeTab === 'security'
-                ? 'border-amber-500 text-slate-900 bg-white'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <KeyRound className="size-4 text-amber-500" />
-            PIN & Güvenlik
-          </button>
         </div>
 
         {/* Tab Content */}
@@ -217,7 +216,7 @@ export default function AdminControlModal({
                 </div>
               </div>
 
-              {/* Araç Çubuğu (Arama & Filtreler & Yeni Satış Butonu) */}
+              {/* Araç Çubuğu (Arama & Filtreler & Yeni Satış Butonu & Yedek) */}
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
                 <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
                   <div className="relative flex-1 min-w-[180px]">
@@ -254,12 +253,33 @@ export default function AdminControlModal({
                   </div>
                 </div>
 
-                <button
-                  onClick={() => onOpenNewSale()}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow hover:bg-slate-800 transition"
-                >
-                  <Plus className="size-4 text-amber-400" /> Yeni Satış Kaydı Ekle
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Farklı Bilgisayarlar Arası Yedek / Transfer */}
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <button
+                      onClick={handleExportBackup}
+                      title="Satış kayıtlarını başka bir bilgisayara aktarmak veya yedeklemek için JSON olarak indir"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-2xs"
+                    >
+                      <Download className="size-3.5 text-slate-500" /> Yedeği İndir
+                    </button>
+
+                    <label
+                      title="Başka bir bilgisayardan indirilen satış yedeğini bu bilgisayara yükle"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-2xs cursor-pointer"
+                    >
+                      <Upload className="size-3.5 text-slate-500" /> Yedeği Yükle
+                      <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={() => onOpenNewSale()}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow hover:bg-slate-800 transition"
+                  >
+                    <Plus className="size-4 text-amber-400" /> Yeni Satış Kaydı Ekle
+                  </button>
+                </div>
               </div>
 
               {/* Tablo */}
@@ -272,9 +292,9 @@ export default function AdminControlModal({
                         <th className="py-2.5 px-3">Konum & Tip</th>
                         <th className="py-2.5 px-3">Liste Fiyatı</th>
                         <th className="py-2.5 px-3">Durum</th>
-                        <th className="py-2.5 px-3">Müşteri / Alıcı</th>
+                        <th className="py-2.5 px-3">Müşteri / Alıcı & Satış Notları</th>
                         <th className="py-2.5 px-3">Satış Tarihi</th>
-                        <th className="py-2.5 px-3">Satış Bedeli</th>
+                        <th className="py-2.5 px-3">Satış Bedeli & Taksit</th>
                         <th className="py-2.5 px-3 text-right">İşlemler</th>
                       </tr>
                     </thead>
@@ -323,10 +343,17 @@ export default function AdminControlModal({
                               </td>
                               <td className="py-2.5 px-3 font-semibold text-slate-800">
                                 {isSold ? (
-                                  <div>
-                                    <p className="font-bold text-slate-900">{sale.customerName}</p>
-                                    {sale.phone && (
-                                      <p className="text-[10px] text-slate-500 font-normal">{sale.phone}</p>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-slate-900">{sale.customerName}</span>
+                                      {sale.phone && (
+                                        <span className="text-[10px] text-slate-500 font-normal">({sale.phone})</span>
+                                      )}
+                                    </div>
+                                    {sale.notes && (
+                                      <p className="text-[10.5px] text-slate-600 bg-slate-50 border border-slate-200/80 rounded px-2 py-1 font-normal leading-relaxed">
+                                        📝 {sale.notes}
+                                      </p>
                                     )}
                                   </div>
                                 ) : (
@@ -344,9 +371,24 @@ export default function AdminControlModal({
                                 {isSold ? (
                                   <div>
                                     <p className="font-bold text-slate-900">{formatTL(sale.salePriceK)}</p>
-                                    <p className="text-[10px] text-slate-500">
-                                      {sale.paymentType === 'cash' ? 'Peşin' : 'Vadeli'}
-                                    </p>
+                                    <div className="mt-0.5 space-y-0.5">
+                                      {sale.paymentType === 'cash' ? (
+                                        <span className="inline-block rounded bg-emerald-100 px-1.5 py-0.2 text-[10px] font-bold text-emerald-800">
+                                          Peşin Satış
+                                        </span>
+                                      ) : (
+                                        <>
+                                          <span className="inline-block rounded bg-indigo-100 px-1.5 py-0.2 text-[10px] font-bold text-indigo-800">
+                                            Vadeli Satış
+                                          </span>
+                                          {sale.installmentMonthlyK > 0 && (
+                                            <p className="text-[10.5px] font-bold text-indigo-700">
+                                              Taksit: {formatTL(sale.installmentMonthlyK)} / ay
+                                            </p>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
                                 ) : (
                                   <span className="text-slate-400">—</span>
@@ -454,76 +496,12 @@ export default function AdminControlModal({
               </div>
             </div>
           )}
-
-          {/* TAB 3: GÜVENLİK (PIN DEĞİŞTİRME) */}
-          {activeTab === 'security' && (
-            <div className="max-w-md mx-auto space-y-4">
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-                <h4 className="text-sm font-bold text-slate-900 mb-1">Yönetici PIN Kodu Güncelleme</h4>
-                <p className="text-xs text-slate-500 mb-4">
-                  Yönetici paneline ve müşteri satış kayıtlarına erişim için kullanılan güvenlik kodunu değiştirin.
-                </p>
-
-                <form onSubmit={handlePinSubmit} className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-600">
-                      Mevcut PIN Kodu
-                    </label>
-                    <input
-                      type="password"
-                      maxLength={8}
-                      value={oldPin}
-                      onChange={(e) => setOldPin(e.target.value)}
-                      placeholder="Mevcut PIN Kodunu Giriniz"
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-600">
-                      Yeni PIN Kodu (En az 4 hane)
-                    </label>
-                    <input
-                      type="password"
-                      maxLength={8}
-                      value={newPin}
-                      onChange={(e) => setNewPin(e.target.value)}
-                      placeholder="Yeni PIN Kodunu Belirleyin"
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
-                    />
-                  </div>
-
-                  {pinError && (
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-600">
-                      <AlertCircle className="size-4" /> {pinError}
-                    </div>
-                  )}
-
-                  {pinSuccess && (
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
-                      <CheckCircle2 className="size-4 text-emerald-600" />
-                      PIN kodu başarıyla güncellendi!
-                    </div>
-                  )}
-
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      className="w-full rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white shadow hover:bg-slate-800 transition"
-                    >
-                      PIN Kodunu Güncelle
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-3 text-xs text-slate-500">
           <span>
-            🔒 Yönetici oturumu aktiftir. Satış temsilcisi ekranında müşteri bilgileri gizli tutulur.
+            🔒 Yönetici oturumu aktiftir (Yönetici Şifresi: 1907). Müşteri bilgileri satış temsilcisi ekranında gizli tutulur.
           </span>
           <button
             onClick={onClose}

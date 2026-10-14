@@ -16,7 +16,7 @@ import {
   equalSplitK, trimInstallmentMap, computeInstallmentPlan, computeCashPlan, sumK, ymKey, minInstallmentForTipK,
 } from './lib/finance';
 import { formatTL } from './lib/format';
-import { FINANCE } from './config/project';
+import { PROJECT, FINANCE } from './config/project';
 
 const DEFAULT_BASE_PRICES = {
   '2+1': 6000000,
@@ -58,14 +58,8 @@ export default function App() {
     return [];
   });
 
-  // Yönetici PIN Kodu (localStorage)
-  const [adminPin, setAdminPin] = useState(() => {
-    try {
-      const saved = localStorage.getItem('as_yapsat_admin_pin');
-      if (saved) return saved;
-    } catch {}
-    return '1923';
-  });
+  // Yönetici PIN Kodu (Tüm cihazlarda ortak ve kalıcı: 1907)
+  const adminPin = PROJECT.adminPin || '1907';
 
   // Yönetici Oturumu & Modal Kontrolleri
   const [isAdmin, setIsAdmin] = useState(false);
@@ -223,22 +217,26 @@ export default function App() {
     notify('ok', `${aptNo} numaralı dairenin satış kaydı silindi, daire tekrar satışa açıldı.`);
   };
 
-  // PIN Değiştirme
-  const handleChangePin = (newPin) => {
-    setAdminPin(newPin);
-    try {
-      localStorage.setItem('as_yapsat_admin_pin', newPin);
-    } catch {}
-    notify('ok', 'Yönetici PIN kodu başarıyla güncellendi.');
+  // Portföyü İçe Aktar (Farklı bilgisayardan aktarım için)
+  const handleImportSales = (importedSales) => {
+    if (Array.isArray(importedSales)) {
+      setSales(importedSales);
+      try {
+        localStorage.setItem('as_yapsat_sales', JSON.stringify(importedSales));
+      } catch {}
+      notify('ok', `${importedSales.length} adet satış kaydı başarıyla aktarıldı!`);
+    }
   };
 
   // Mevcut Teklifi Satışa Dönüştür (Hızlı Aksiyon)
   const handleConvertToSale = (targetApartment) => {
     requireAdmin(() => {
       const target = targetApartment || apt;
-      const initialNotes = paymentType === 'cash'
+      const isCash = paymentType === 'cash';
+      const monthlyAmountK = !isCash && plan.rows && plan.rows.length > 0 ? (plan.rows[0]?.amountK || 0) : 0;
+      const initialNotes = isCash
         ? `Peşin Satış Sözleşmesi (%${FINANCE.cashDiscountPct} indirim uygulandı).`
-        : `${plan.installmentCount} Ay Vadeli: ${formatTL(effectiveDownK)} peşinat + ${formatTL(plan.totalInstallmentsK)} taksitler toplamı + ${formatTL(plan.balonTotalK)} teslimat kapanış tutarı.`;
+        : `${plan.installmentCount} Ay Vadeli: ${formatTL(effectiveDownK)} peşinat + Aylık ${formatTL(monthlyAmountK)} taksit (${plan.installmentCount} Ay Toplamı: ${formatTL(plan.totalInstallmentsK)}) + ${formatTL(plan.balonTotalK)} teslimat kapanış tutarı.`;
 
       setSaleTargetApt(target);
       setEditingSaleRecord({
@@ -246,9 +244,11 @@ export default function App() {
         customerName: customerName || '',
         phone: '',
         date: new Date().toISOString().split('T')[0],
-        salePriceK: paymentType === 'cash' ? cashPlan.finalK : saleK,
+        salePriceK: isCash ? cashPlan.finalK : saleK,
         paymentType,
-        downPaymentK: paymentType === 'cash' ? cashPlan.finalK : effectiveDownK,
+        downPaymentK: isCash ? cashPlan.finalK : effectiveDownK,
+        installmentMonthlyK: monthlyAmountK,
+        installmentCount: !isCash ? plan.installmentCount : 0,
         notes: initialNotes,
       });
       setSaleModalOpen(true);
@@ -449,7 +449,7 @@ export default function App() {
         onResetBasePrices={handleResetBasePrices}
         onSaveSale={handleSaveSale}
         onDeleteSale={handleDeleteSale}
-        onChangePin={handleChangePin}
+        onImportSales={handleImportSales}
         onOpenNewSale={(target) => {
           setSaleTargetApt(target || apt);
           setEditingSaleRecord(null);

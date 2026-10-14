@@ -21,6 +21,7 @@ export default function SaleRecordModal({
   const [priceK, setPriceK] = useState(0);
   const [paymentType, setPaymentType] = useState('installment');
   const [downK, setDownK] = useState(0);
+  const [installmentMonthlyK, setInstallmentMonthlyK] = useState(0);
   const [notes, setNotes] = useState('');
 
   const currentApt = apartments.find((a) => a.no === selectedNo) || targetApt || apartments[0];
@@ -36,6 +37,7 @@ export default function SaleRecordModal({
         setPriceK(initialRecord.salePriceK || 0);
         setPaymentType(initialRecord.paymentType || 'installment');
         setDownK(initialRecord.downPaymentK || 0);
+        setInstallmentMonthlyK(initialRecord.installmentMonthlyK || 0);
         setNotes(initialRecord.notes || '');
       } else {
         const apt = targetApt || apartments[0];
@@ -47,6 +49,7 @@ export default function SaleRecordModal({
         setPriceK(pK);
         setPaymentType('installment');
         setDownK(Math.round(pK * 0.4));
+        setInstallmentMonthlyK(0);
         setNotes('');
       }
     }
@@ -70,6 +73,8 @@ export default function SaleRecordModal({
       salePriceK: priceK,
       paymentType,
       downPaymentK: downK,
+      installmentMonthlyK: paymentType === 'installment' ? installmentMonthlyK : 0,
+      installmentCount: initialRecord?.installmentCount || 0,
       notes: notes.trim(),
       updatedAt: new Date().toISOString(),
     };
@@ -245,6 +250,23 @@ export default function SaleRecordModal({
                 Peşinat: {formatTL(downK)}
               </span>
             </div>
+
+            {paymentType === 'installment' && (
+              <div className="sm:col-span-2 rounded-xl border border-indigo-200 bg-indigo-50/50 p-3">
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-900">
+                  <Banknote className="size-3.5 text-indigo-600" /> Kararlaştırılan Aylık Taksit Tutarı (TL)
+                </label>
+                <MoneyInput
+                  valueK={installmentMonthlyK}
+                  onChange={setInstallmentMonthlyK}
+                  commitOnBlur
+                  className="border-indigo-300 font-bold text-indigo-950 bg-white"
+                />
+                <span className="mt-1 block text-[11px] text-indigo-700 font-medium">
+                  Taksit: {formatTL(installmentMonthlyK)} / ay
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Notlar & Ödeme Detayı */}
